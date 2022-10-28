@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model acesso_user {
+  id          Int        @id @default(autoincrement())
+  descricao   String?    @db.VarChar(20)
+  usuarios_id Int
+  usuarios    usuarios   @relation(fields: [usuarios_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_acesso_user_usuarios")
+  sub_menu    sub_menu[]
+
+  @@index([usuarios_id], map: "fk_acesso_user_usuarios_idx")
+}
+
+
+model cliente {
+  id             Int            @id @default(autoincrement())
+  cnpj_cic       String?        @db.VarChar(18)
+  insc_estadual  String?        @db.VarChar(20)
+  insc_municipal String?        @db.VarChar(20)
+  nome           String?        @db.VarChar(150)
+  logradouro     String?        @db.VarChar(100)
+  numero         String?        @db.VarChar(5)
+  complemento    String?        @db.VarChar(100)
+  bairro         String?        @db.VarChar(100)
+  cidade         String?        @db.VarChar(100)
+  uf             String?        @db.VarChar(3)
+  cep            String?        @db.VarChar(9)
+  telefone       String?        @db.VarChar(20)
+  celular        String?        @db.VarChar(20)
+  site           String?        @db.VarChar(150)
+  email          String?        @db.VarChar(100)
+  id_usuario     Int?
+  comp_produto   comp_produto[]
+}
+
+model comp_produto {
+  id          Int           @id @default(autoincrement())
+  descricao   String?       @db.VarChar(40)
+  produto_id  Int
+  base        Int?
+  cliente_id  Int
+  cliente     cliente       @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comp_produto_cliente1")
+  produto     produto       @relation(fields: [produto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comp_produto_produto1")
+  movimento   movimento[]
+  tab_fatura  tab_fatura[]
+  tab_repasse tab_repasse[]
+
+  @@index([cliente_id], map: "fk_comp_produto_cliente1_idx")
+  @@index([produto_id], map: "fk_comp_produto_produto1_idx")
+}
+
+model comp_transporte {
+  id                  Int              @id @default(autoincrement())
+  tab_repasse_id      Int
+  produto_id          Int
+  transp_base_entr_id Int
+  produto             produto          @relation(fields: [produto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comp_transporte_produto1")
+  tab_repasse         tab_repasse      @relation(fields: [tab_repasse_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comp_transporte_tab_repasse1")
+  transp_base_entr    transp_base_entr @relation(fields: [transp_base_entr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_comp_transporte_transp_base_entr1")
+
+  @@index([produto_id], map: "fk_comp_transporte_produto1_idx")
+  @@index([tab_repasse_id], map: "fk_comp_transporte_tab_repasse1_idx")
+  @@index([transp_base_entr_id], map: "fk_comp_transporte_transp_base_entr1_idx")
+}
+
+model histo_mov {
+  id                  Int              @id @default(autoincrement())
+  data_status         DateTime?        @db.DateTime(0)
+  movimento_id        Int
+  status_id           Int
+  transp_base_entr_id Int
+  origem              String?          @db.VarChar(45)
+  destino             String?          @db.VarChar(45)
+  movimento           movimento        @relation(fields: [movimento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_histo_mov_movimento1")
+  status              status           @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_histo_mov_status1")
+  transp_base_entr    transp_base_entr @relation(fields: [transp_base_entr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_histo_mov_transp_base_entr1")
+
+  @@index([movimento_id], map: "fk_histo_mov_movimento1_idx")
+  @@index([status_id], map: "fk_histo_mov_status1_idx")
+  @@index([transp_base_entr_id], map: "fk_histo_mov_transp_base_entr1_idx")
+}
+
+model menu {
+  id        Int        @id @default(autoincrement())
+  descricao String?    @db.VarChar(20)
+  sub_menu  sub_menu[]
+}
+
+model movimento {
+  id              Int          @id @default(autoincrement())
+  sro             String?      @db.VarChar(20)
+  data_mov        DateTime?    @db.DateTime(0)
+  comp_produto_id Int
+  comp_produto    comp_produto @relation(fields: [comp_produto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_movimento_comp_produto1")
+  histo_mov       histo_mov[]
+
+  @@index([comp_produto_id], map: "fk_movimento_comp_produto1_idx")
+}
+
+model produto {
+  id              Int               @id @default(autoincrement())
+  descricao       String?           @db.VarChar(50)
+  comp_produto    comp_produto[]
+  comp_transporte comp_transporte[]
+}
+
+model status {
+  id             Int              @id @default(autoincrement())
+  descricao      String?          @db.VarChar(50)
+  tipo           String?          @db.Char(3)
+  cliente        Int?
+  base           Int?
+  usuario        Int?
+  histo_mov      histo_mov[]
+  status_de_para status_de_para[]
+}
+
+model status_de_para {
+  id                  Int              @id @default(autoincrement())
+  transp_base_entr_id Int
+  status_id           Int
+  descricao           String?          @db.VarChar(50)
+  id_usuario          Int?
+  status              status           @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_status_de_para_status1")
+  transp_base_entr    transp_base_entr @relation(fields: [transp_base_entr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_status_de_para_transp_base_entr1")
+
+  @@index([status_id], map: "fk_status_de_para_status1_idx")
+  @@index([transp_base_entr_id], map: "fk_status_de_para_transp_base_entr1_idx")
+}
+
+model sub_menu {
+  id             Int         @id @default(autoincrement())
+  descricao      String?     @db.VarChar(20)
+  menu_id        Int
+  acesso_user_id Int
+  acesso_user    acesso_user @relation(fields: [acesso_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sub_menu_acesso_user1")
+  menu           menu        @relation(fields: [menu_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sub_menu_menu1")
+
+  @@index([acesso_user_id], map: "fk_sub_menu_acesso_user1_idx")
+  @@index([menu_id], map: "fk_sub_menu_menu1_idx")
+}
+
+model tab_fatura {
+  id              Int          @id @default(autoincrement())
+  descricao       String?      @db.VarChar(45)
+  comp_produto_id Int
+  comp_produto    comp_produto @relation(fields: [comp_produto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tab_fatura_comp_produto1")
+
+  @@index([comp_produto_id], map: "fk_tab_fatura_comp_produto1_idx")
+}
+
+model tab_repasse {
+  id              Int               @id @default(autoincrement())
+  descricao       String?           @db.VarChar(45)
+  comp_produto_id Int
+  comp_produto    comp_produto      @relation(fields: [comp_produto_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tab_repasse_comp_produto1")
+  comp_transporte comp_transporte[]
+
+  @@index([comp_produto_id], map: "fk_tab_repasse_comp_produto1_idx")
+}
+
+model transp_base_entr {
+  id              Int               @id @default(autoincrement())
+  cnpj_cic        String?           @db.VarChar(18)
+  insc_estadual   String?           @db.VarChar(20)
+  insc_municipal  String?           @db.VarChar(20)
+  nome            String?           @db.VarChar(100)
+  logradouro      String?           @db.VarChar(150)
+  numero          String?           @db.VarChar(5)
+  complemento     String?           @db.VarChar(100)
+  bairro          String?           @db.VarChar(100)
+  cidade          String?           @db.VarChar(100)
+  uf              String?           @db.VarChar(3)
+  cep             String?           @db.VarChar(9)
+  telefone        String?           @db.VarChar(20)
+  celular         String?           @db.VarChar(20)
+  email           String?           @db.VarChar(100)
+  tipo            String?           @db.Char(1)
+  comp_transporte comp_transporte[]
+  histo_mov       histo_mov[]
+  status_de_para  status_de_para[]
+}
+
+model usuarios {
+  id          Int           @id @default(autoincrement())
+  nome        String?       @db.VarChar(50)
+  email       String?       @db.VarChar(50)
+  senha       String?       @db.VarChar(500)
+  logradouro  String?       @db.VarChar(150)
+  numero      String?       @db.VarChar(5)
+  complemento String?       @db.VarChar(100)
+  bairro      String?       @db.VarChar(100)
+  cidade      String?       @db.VarChar(100)
+  cep         String?       @db.VarChar(9)
+  uf          String?       @db.VarChar(3)
+  telefone    String?       @db.VarChar(20)
+  celular     String?       @db.VarChar(20)
+  acesso_user acesso_user[]
+}
